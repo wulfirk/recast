@@ -1,0 +1,4 @@
+# Dependency directories
+node_modules/
+src/config.js
+src/secret.js
