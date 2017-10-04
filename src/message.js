@@ -5,7 +5,6 @@
 
 const recastai = require('recastai')
 const odapi = require('./odapi')
-const odaccidentapi = require('./odaccidentapi')
 const funcTo = require('./function')
 
 const sendMessage = message => {
@@ -16,6 +15,34 @@ const sendMessage = message => {
 		.catch(err => {
 			console.error('Error while sending message to channel', err)
 		})
+}
+
+const moreInfo = message => {
+	let button = []
+	button.push(funcTo.toButton('accident','Donnes moi plus d\'infos sur "accident"'))
+	button.push(funcTo.toButton('culture','Donnes moi plus d\'infos sur "culture"'))
+	button.push(funcTo.toButton('immobilier','Donnes moi plus d\'infos sur "immobilier"'))
+	button.push(funcTo.toButton('demographie','Donnes moi plus d\'infos sur "demographie"'))
+
+	message.addReply(
+		funcTo.toButtons(`Plus d'informations`,button)
+	)
+
+	sendMessage(message)
+}
+
+const sendError = (e, message, result) => {
+	console.log(e)
+	message.addReply(funcTo.toText(`Il y a eu une erreur`))
+	message.addReply(funcTo.toImage(`http://img.freepik.com/free-vector/worker-crying_1012-222.jpg?size=180&ext=jpg`))
+
+	sendMessage(message)
+	result.resetConversation()
+}
+
+const sendHelp = (message) => {
+	message.addReply(funcTo.toText(`Désolé je n'ai pas été programmé à répondre à cela. Tape "help" si tu veux de l'aide`))
+	sendMessage(message)
 }
 
 // This function is the core of the bot behaviour
@@ -47,61 +74,115 @@ const replyMessage = (message) => {
 				//console.log(result)
 				if (result.get('location') && result.get('location').formatted) {
 					let arrVille = result.get('location').formatted.split(",");
-					odapi(result, arrVille[0])
+					let query = {
+						type: "ville",
+						query: arrVille[0]
+					}
+					odapi(result, query)
 						.then(res => {
 							message.addReply(res)
-							let button = []
-							button.push(funcTo.toButton('accident','Donnes moi plus d\'infos sur "accident"'))
-							button.push(funcTo.toButton('culture','Donnes moi plus d\'infos sur "culture"'))
-							button.push(funcTo.toButton('immobilier','Donnes moi plus d\'infos sur "immobilier"'))
-							message.addReply(
-								funcTo.toButtons(`Plus d'informations`,button)
-							)
-							sendMessage(message)
+							moreInfo(message)
+						})
+						.catch(function(e) {
+							sendError(e, message, result)
 						})
 				} else {
-					message.addReply(funcTo.toText(`Je ne trouve rien`))
-					sendMessage(message)
+					sendHelp(message)
 				}
 				break
 			case "show_action":
 				if (result.get('category') && result.get('category').value) {
+					let city = result.getMemory('ville')
+					let query = {}
 					switch (result.get('category').value) {
 						case 'accident':
-							let city = result.getMemory('ville')
-							odaccidentapi(result, city.uri, city.label, '2016')
+							query = {
+								type: "accident",
+								query: city.uri,
+								label: city.label,
+								year: "2016"
+							}
+							odapi(result, query)
 								.then(res => {
 									message.addReply(res)
-									sendMessage(message)
+									moreInfo(message)
+								})
+								.catch(function(e) {
+									sendError(e, message, result)
+								})
+							break
+						case 'culture':
+							query = {
+								type: "culture",
+								query: city.uri,
+								label: city.label,
+								year: "2016"
+							}
+							odapi(result, query)
+								.then(res => {
+									message.addReply(res)
+									moreInfo(message)
+								})
+								.catch(function(e) {
+									sendError(e, message, result)
+								})
+							break
+						case 'immobilier':
+							query = {
+								type: "immobilier",
+								query: city.uri,
+								label: city.label,
+								year: "2013"
+							}
+							odapi(result, query)
+								.then(res => {
+									message.addReply(res)
+									moreInfo(message)
+								})
+								.catch(function(e) {
+									sendError(e, message, result)
+								})
+							break
+						case 'demographie':
+							query = {
+								type: "demographie",
+								query: city.uri,
+								label: city.label,
+								year: "2014"
+							}
+							odapi(result, query)
+								.then(res => {
+									message.addReply(res)
+									moreInfo(message)
+								})
+								.catch(function(e) {
+									sendError(e, message, result)
 								})
 							break
 						default:
-							message.addReply(funcTo.toText(`Je ne peux pas donner plus d\'infos`))
-							let button = []
-							button.push(funcTo.toButton('accident','Donnes moi plus d\'infos sur "accident"'))
-							button.push(funcTo.toButton('culture','Donnes moi plus d\'infos sur "culture"'))
-							button.push(funcTo.toButton('immobilier','Donnes moi plus d\'infos sur "immobilier"'))
-							message.addReply(
-								funcTo.toButtons(`Plus d'informations`,button)
-							)
-							sendMessage(message)
+							message.addReply(funcTo.toText(`Je ne peux pas donner plus d'infos`))
+							moreInfo(message)
 							break
 					}
+				} else {
+					sendHelp(message)
 				}
 				break
 			default:
+				if (!result.replies.length) {
+					message.addReply(funcTo.toText(`Je n'ai rien à te dire :/`))
+					sendMessage(message)
+				} else {
+					// Add each reply received from API to replies stack
+					result.replies.forEach(replyContent => message.addReply(funcTo.toText(replyContent)))
+					sendMessage(message)
+				}
 				break
 		}
-    }
-
-    // If there is not any message return by Recast.AI for this current conversation
-    if (!result.replies.length) {
-      //message.addReply({ type: 'text', content: 'I don\'t have the reply to this yet :)' })
     } else {
-      // Add each reply received from API to replies stack
-      result.replies.forEach(replyContent => message.addReply(funcTo.toText(replyContent)))
-		sendMessage(message)
-    }
+		sendHelp(message)
+	}
+
   })
   .catch(err => {
     console.error('Error while sending message to Recast.AI', err)

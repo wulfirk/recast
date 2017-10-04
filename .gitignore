@@ -2,3 +2,4 @@
 node_modules/
 src/config.js
 src/secret.js
+.idea/
