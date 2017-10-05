@@ -31,13 +31,13 @@ const moreInfo = message => {
 	sendMessage(message);
 };
 
-const sendError = (e, message, result) => {
-	console.log(e);
+const sendError = (e, message) => {
+	console.log('ERR > ', e);
 	message.addReply(funcTo.toText(`Il y a eu une erreur`));
 	message.addReply(funcTo.toImage(`http://img.freepik.com/free-vector/worker-crying_1012-222.jpg?size=180&ext=jpg`));
 
 	sendMessage(message);
-	result.resetConversation();
+	//result.resetConversation();
 };
 
 const sendHelp = (message) => {
@@ -51,7 +51,7 @@ const replyMessage = (message) => {
 	const request = new recastai.request(process.env.REQUEST_TOKEN, process.env.LANGUAGE)
 		,text = message.content;
 
-	console.log('I receive: ', text);
+	console.log('Demande > ', text);
 
 	// Get senderId to catch unique conversation_token
 	const senderId = message.senderId;
@@ -70,23 +70,20 @@ const replyMessage = (message) => {
 		* etc...
 		*/
 		if (result.action) {
-			console.log('The conversation action is: ', result.action.slug);
+			console.log('Action >', result.action.slug);
 			switch (result.action.slug) {
 				case "frenchcity":
-					//console.log(result)
+					//console.log('INFO >', result)
 					if (result.get('location') && result.get('location').formatted) {
 						let arrVille = result.get('location').formatted.split(",")
 							,query = {
 							type: "ville",
 							query: arrVille[0]
 						};
-						odapi(result, query)
+						return odapi(result, query)
 							.then(res => {
 								message.addReply(res);
 								moreInfo(message);
-							})
-							.catch(function(e) {
-								sendError(e, message, result);
 							});
 					} else {
 						sendHelp(message);
@@ -104,13 +101,10 @@ const replyMessage = (message) => {
 									label: city.label,
 									year: "2016"
 								};
-								odapi(result, query)
+								return odapi(result, query)
 									.then(res => {
 										message.addReply(res);
 										moreInfo(message);
-									})
-									.catch(function(e) {
-										sendError(e, message, result);
 									});
 								break;
 							case 'culture':
@@ -120,13 +114,10 @@ const replyMessage = (message) => {
 									label: city.label,
 									year: "2016"
 								};
-								odapi(result, query)
+								return odapi(result, query)
 									.then(res => {
 										message.addReply(res);
 										moreInfo(message);
-									})
-									.catch(function(e) {
-										sendError(e, message, result);
 									});
 								break;
 							case 'immobilier':
@@ -136,13 +127,10 @@ const replyMessage = (message) => {
 									label: city.label,
 									year: "2013"
 								};
-								odapi(result, query)
+								return odapi(result, query)
 									.then(res => {
 										message.addReply(res);
 										moreInfo(message);
-									})
-									.catch(function(e) {
-										sendError(e, message, result);
 									});
 								break;
 							case 'demographie':
@@ -152,13 +140,10 @@ const replyMessage = (message) => {
 									label: city.label,
 									year: "2014"
 								};
-								odapi(result, query)
+								return odapi(result, query)
 									.then(res => {
 										message.addReply(res);
 										moreInfo(message);
-									})
-									.catch(function(e) {
-										sendError(e, message, result);
 									});
 								break;
 							default:
@@ -186,7 +171,7 @@ const replyMessage = (message) => {
 		}
 	})
 	.catch(err => {
-		console.error('Error while sending message to Recast.AI', err)
+		sendError(err, message);
 	});
 };
 

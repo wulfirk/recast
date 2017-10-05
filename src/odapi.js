@@ -4,11 +4,7 @@ const rp = require('request-promise')
 
 const odapi = (result, query) =>
 	Promise.all([ ODCall(query) ])
-	.then( datas => funcTo.toText((getRes(result, datas[0], query))) )
-	.catch(function (e) {
-		throw e;
-	})
-	;
+	.then( datas => funcTo.toText((getRes(result, datas[0], query))) );
 
 const ODCall = (query) => {
 	let opad = {};
@@ -33,13 +29,13 @@ const ODCall = (query) => {
 			break;
 	}
 
-	console.log(secret(opad));
+	console.log('INFO >', secret(opad));
 	const options = {
 		url: secret(opad)
 	};
 	return rp(options)
 		.then( resultOD => {
-			console.log(resultOD);
+			console.log('INFO >', resultOD);
 			const res = JSON.parse(resultOD);
 			//TODO: try catch
 
@@ -85,9 +81,6 @@ const ODCall = (query) => {
 					break;
 			}
 		})
-		.catch(function (e) {
-			throw e;
-		});
 };
 
 const getRes = (result, data, query) => {
